@@ -1,22 +1,25 @@
 import data_processing
 
+# from google map
+min_longitude = -73.949498
+max_longitude = -73.474909
+min_latitude = 45.410686
+max_latitude = 45.706619
+
 class CreateGrids:
 
-    def __init__(self, df):
-        self.df = df
+    def __init__(self, min_longi, max_longi, min_lati, max_lati):
+        self.min_longi= min_longi
+        self.max_longi = max_longi
+        self.min_lati = min_lati
+        self.max_lati = max_lati
 
     def get_corners(self):
-        df = self.df
-        # max_longitude = df['LONGITUDE'].max()
-        # min_longitude = df['LONGITUDE'].min()
-        # max_latitude = df['LATITUDE'].max()
-        # min_latitude = df['LATITUDE'].min()
 
-        # from google map
-        min_longitude = -73.949498
-        max_longitude = -73.474909
-        min_latitude = 45.410686
-        max_latitude = 45.706619
+        min_longitude = self.min_longi
+        max_longitude = self.max_longi
+        min_latitude = self.min_lati
+        max_latitude = self.max_lati
 
         southwest = [min_latitude, min_longitude]
         southeast = [min_latitude, max_longitude]
@@ -28,6 +31,10 @@ class CreateGrids:
     def calculate_distance(self):
         from math import sin, cos, sqrt, atan2, radians
 
+        lat1 = radians(52.2296756)
+        lon1 = radians(21.0122287)
+        lat2 = radians(52.406374)
+        lon2 = radians(16.9251681)
 
 
     def get_inner_points(self):
