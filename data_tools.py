@@ -8,18 +8,18 @@ max_latitude = 45.706619
 
 class CreateGrids:
 
-    def __init__(self, min_longi, max_longi, min_lati, max_lati):
-        self.min_longi= min_longi
-        self.max_longi = max_longi
-        self.min_lati = min_lati
-        self.max_lati = max_lati
+    def __init__(self, lon_min, lon_max, lat_min, lat_max):
+        self.lon_min= lon_min
+        self.lon_max = lon_max
+        self.lat_min = lat_min
+        self.lat_max = lat_max
 
     def get_corners(self):
 
-        min_longitude = self.min_longi
-        max_longitude = self.max_longi
-        min_latitude = self.min_lati
-        max_latitude = self.max_lati
+        min_longitude = self.lon_min
+        max_longitude = self.lon_max
+        min_latitude = self.lat_min
+        max_latitude = self.lat_max
 
         southwest = [min_latitude, min_longitude]
         southeast = [min_latitude, max_longitude]
@@ -28,14 +28,43 @@ class CreateGrids:
 
         return (southwest, southeast, northwest, northeast)
     
-    def calculate_distance(self):
+    def calculate_distance(self, lon_west, lon_east, lat_south, lat_north):
         from math import sin, cos, sqrt, atan2, radians
 
-        lat1 = radians(52.2296756)
-        lon1 = radians(21.0122287)
-        lat2 = radians(52.406374)
-        lon2 = radians(16.9251681)
+        # approximate radius of earth in km
+        R = 6373.0
 
+        lon_west_r = radians(lon_west)
+        lon_east_r = radians(lon_east)
+        lat_south_r = radians(lat_south)
+        lat_north_r = radians(lat_north)
+
+        dlon = lon_east_r - lon_west_r
+        dlat = lat_north_r - lat_south_r
+
+        a = sin(dlat / 2)**2 + cos(lat_south_r) * cos(lat_north_r) * sin(dlon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        distance = R * c
+
+        return distance
+
+    def lenght_width(self):
+
+        southwest, southeast, northwest, northeast = self.get_corners()
+
+        lat_south = southwest[0]
+        lat_north = northwest[0]
+        lon = southwest[1]
+
+        lon_west = southwest[1]
+        lon_east = southeast[1]
+        lat = southwest[0]
+
+        length = self.calculate_distance(lon_west, lon_east, lat, lat)
+        width = self.calculate_distance(lon, lon, lat_south, lat_north)
+
+        return (length, width)
 
     def get_inner_points(self):
         import numpy as np
@@ -44,5 +73,5 @@ class CreateGrids:
 
         return southwest
 
-main = CreateGrids(data_processing.fire_incidents_df)
-print(main.get_inner_points())
+main = CreateGrids(min_longitude, max_longitude, min_latitude, max_latitude)
+print(main.lenght_width())
