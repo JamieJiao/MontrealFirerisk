@@ -7,27 +7,18 @@ max_longitude = -73.474909
 min_latitude = 45.410686
 max_latitude = 45.706619
 
+southwest = [45.410686, -73.949498]
+southeast = [45.410686, -73.474909]
+northwest = [45.706619, -73.949498]
+northeast = [45.706619, -73.474909]
+
 class CreateGrids:
 
-    def __init__(self, lon_min, lon_max, lat_min, lat_max):
-        self.lon_min= lon_min
-        self.lon_max = lon_max
-        self.lat_min = lat_min
-        self.lat_max = lat_max
-
-    def get_corners(self):
-
-        min_longitude = self.lon_min
-        max_longitude = self.lon_max
-        min_latitude = self.lat_min
-        max_latitude = self.lat_max
-
-        southwest = [min_latitude, min_longitude]
-        southeast = [min_latitude, max_longitude]
-        northwest = [max_latitude, min_longitude]
-        northeast = [max_latitude, max_longitude]
-
-        return (southwest, southeast, northwest, northeast)
+    def __init__(self, southwest, southeast, northwest, northeast):
+        self.southwest= southwest
+        self.southeast = southeast
+        self.northwest = northwest
+        self.northeast = northeast
     
     def calculate_distance(self, lon_west, lon_east, lat_south, lat_north):
         from math import sin, cos, sqrt, atan2, radians
@@ -52,7 +43,9 @@ class CreateGrids:
 
     def lenght_width(self):
 
-        southwest, southeast, northwest, northeast = self.get_corners()
+        southwest = self.southwest
+        northwest = self.northwest
+        southeast = self.southeast
 
         lat_south = southwest[0]
         lat_north = northwest[0]
@@ -62,6 +55,8 @@ class CreateGrids:
         lon_east = southeast[1]
         lat = southwest[0]
 
+        # if calculate length, southeast - southwest, lats are the same
+        # if calcualte width, northwest - southwest, lons are the same
         length = self.calculate_distance(lon_west, lon_east, lat, lat)
         width = self.calculate_distance(lon, lon, lat_south, lat_north)
 
@@ -79,80 +74,89 @@ class CreateGrids:
         return (len_intervals_number, wid_intervals_number)
 
     def return_grids(self):
-
-        southwest, southeast, northwest, northeast = self.get_corners()
-        # points_lon: how many points between longitudes(length), east - west 
-        # points_lat: how many points between latitudes(width), north - south
-        points_lon_num, points_lat_num = self.intervals_number()
-
-        lon_interval_val = (southeast[1] - southwest[1])/points_lon_num
-        lat_interval_val = (northeast[0] - southeast[0])/points_lat_num
-
-        grids = self.create_grids(southwest[0], southwest[1], points_lon_num, points_lat_num, 
-                                    lon_interval_val, lat_interval_val)
-
-        return grids
-
-    def create_grids(self, start_point_lat, start_point_lon, points_lon_num, 
-                    points_lat_num, interval_val_lon, interval_val_lat):
         import numpy as np
+        
+        southwest = self.southwest
+        northwest = self.northwest
+        southeast = self.southeast
+        northeast = self.northeast
+        # x_axis_num: how many points between longitudes(length), east - west 
+        # y_axis_num: how many points between latitudes(width), north - south
+        x_axis_num, y_axis_num = self.intervals_number()
 
-        grids = []
+        # for x axis
+        x_axis_interval = (southeast[1] - southwest[1])/x_axis_num
+        # fot y axis
+        y_axis_interval = (northeast[0] - southeast[0])/y_axis_num
 
-        point_lon = start_point_lon
-        point_lat = start_point_lat
+        grids = np.zeros([x_axis_num, y_axis_num, 2])
 
-        for x_axis in range(points_lon_num + 1):
-            point_lat = start_point_lat
-            for y_axis in range(points_lat_num + 1):
+        grids = self.fill_grids(grids, x_axis_num, y_axis_num, 
+                    x_axis_interval, y_axis_interval)
+
+        return grids, x_axis_interval, y_axis_interval
+
+    def fill_grids(self, grids, x_axis_num, y_axis_num, 
+                    x_axis_interval, y_axis_interval):
+        start_point = self.southwest
+
+        x_count = 0
+        y_count = 0
+        x_axis_val = start_point[1]
+        grids[0][0] = [start_point[1], start_point[0]]
+        
+        for x in range(x_axis_num):
+            y_count = 0
+            y_axis_val = start_point[0]
+            x_axis_val = x_axis_val + x_axis_interval
+             
+            for y in range(y_axis_num):
+                y_axis_val = y_axis_val + y_axis_interval
+                grids[x_count][y_count] = [x_axis_val, y_axis_val]
+
+                y_count = y_count + 1
                 
-                grids.append({'Grid{}_{}'.format(x_axis, y_axis): [point_lat, point_lon]})
-                point_lat = point_lat + interval_val_lat
-            
-            point_lon = point_lon + interval_val_lon
-
+            x_count = x_count + 1        
+             
         return grids
 
-    def grids_to_data(self, df, func):
+
+    def mapping(self, df):
+        from math import floor
         
-        grids = self.return_grids()
-        df['Geo'] = df[['LATITUDE','LONGITUDE']].values.tolist()
+        df['Grid Name'] = ''
 
-        # for i in range(len(grids)):
-        for i in range(200):
+        grids, x_axis_interval, y_axis_interval = self.return_grids()
 
-            if i == 68:
-                grid1_lon = list(grids[i-68].values())[0][1]
-                grid1_lat = list(grids[i-1].values())[0][0]
-                grid2_lon = list(grids[i].values())[0][1]
-                grid2_lat = list(grids[i].values())[0][0]
+        start_point = self.southwest
 
-                name = list(grids[i].keys())[0]
+        for row_n in range(len(df)):
 
-                df['Grid Name'] = df['Geo'].apply(lambda x: name if x[0] >= grid1_lat \
-                                                                and x[1] >= grid1_lon \
-                                                                and x[0] < grid2_lat \
-                                                                and x[1] < grid2_lon else "NaN")
-                
+            longitude = df['LONGITUDE'][row_n]
+            latitude = df['LATITUDE'][row_n]
+
+            x_axis = floor((longitude - start_point[1])/x_axis_interval)
+            y_axis = floor((latitude - start_point[0])/y_axis_interval)
+
+            df['Grid Name'][row_n] = 'Grid_{}_{}'.format(x_axis, y_axis)
+
         return df
+            
 
 
-df = pd.read_csv('fire_incidents.csv', encoding="ISO-8859-1")
+df = pd.read_csv('fire_incidents.csv', nrows=500, encoding="ISO-8859-1")
 
 
-def func(x, grid1_lon, \
-        grid1_lat, grid2_lon, grid2_lat, name):
+main = CreateGrids(southwest, southeast, northwest, northeast)
+grids, a, b = main.return_grids()
 
-    if x.LONGITUDE > grid1_lon:
-            x.grid_name = name
-            # print(x.grid_name)
-            return x.grid_name
+mapped_df = main.mapping(df)
+print(grids[74][65])
 
-main = CreateGrids(min_longitude, max_longitude, min_latitude, max_latitude)
-val = main.grids_to_data(df, func=None)
+# val = main.grids_to_data(df, func=None)
 # val = main.return_grids()
 # print(val)
-val.to_csv('output.csv')
+# val.to_csv('output.csv')
 # df['Geo'] = df[['LONGITUDE', 'LATITUDE']].values.tolist()
 # print(df)
 
