@@ -86,10 +86,11 @@ class CreateGrids:
 
         # for x axis
         x_axis_interval = (southeast[1] - southwest[1])/x_axis_num
+        
         # fot y axis
         y_axis_interval = (northeast[0] - southeast[0])/y_axis_num
-
-        grids = np.zeros([x_axis_num, y_axis_num, 2])
+        print(y_axis_interval)
+        grids = np.zeros([x_axis_num+1, y_axis_num, 2])
 
         grids = self.fill_grids(grids, x_axis_num, y_axis_num, 
                     x_axis_interval, y_axis_interval)
@@ -105,10 +106,12 @@ class CreateGrids:
         x_axis_val = start_point[1]
         grids[0][0] = [start_point[1], start_point[0]]
         
-        for x in range(x_axis_num):
+        # when inner loop starts (y), x axis at 0
+        # when outer loop starts (x), y axis at 1
+        # outer loop has one more loop than inner loop  
+        for x in range(x_axis_num+1):
             y_count = 0
             y_axis_val = start_point[0]
-            x_axis_val = x_axis_val + x_axis_interval
              
             for y in range(y_axis_num):
                 y_axis_val = y_axis_val + y_axis_interval
@@ -117,12 +120,13 @@ class CreateGrids:
                 y_count = y_count + 1
                 
             x_count = x_count + 1        
-             
+            x_axis_val = x_axis_val + x_axis_interval
+
         return grids
 
 
     def mapping(self, df):
-        from math import floor
+        from math import ceil, floor
         
         df['Grid Name'] = ''
 
@@ -130,13 +134,15 @@ class CreateGrids:
 
         start_point = self.southwest
 
+        # the mapping below, y has one more row than y in the grids array
+        # when compare y axis, mapping[x][y] = grids[x][y-1]
         for row_n in range(len(df)):
 
             longitude = df['LONGITUDE'][row_n]
             latitude = df['LATITUDE'][row_n]
 
-            x_axis = floor((longitude - start_point[1])/x_axis_interval)
-            y_axis = floor((latitude - start_point[0])/y_axis_interval)
+            x_axis = ceil((longitude - start_point[1])/x_axis_interval)
+            y_axis = ceil((latitude - start_point[0])/y_axis_interval)
 
             df['Grid Name'][row_n] = 'Grid_{}_{}'.format(x_axis, y_axis)
 
@@ -151,12 +157,16 @@ main = CreateGrids(southwest, southeast, northwest, northeast)
 grids, a, b = main.return_grids()
 
 mapped_df = main.mapping(df)
-print(grids[74][65])
 
-# val = main.grids_to_data(df, func=None)
-# val = main.return_grids()
-# print(val)
-# val.to_csv('output.csv')
-# df['Geo'] = df[['LONGITUDE', 'LATITUDE']].values.tolist()
-# print(df)
+print(grids.shape)
+print(mapped_df.head())
+print(grids[75][65])
+print(grids[0][1])
+print(grids[0][0])
+print("")
+print(grids[63][23])
+print(grids[63][22])
+print(grids[62][23])
+print(grids[62][22])
+
 
