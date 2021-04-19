@@ -12,7 +12,7 @@ southeast = [45.410686, -73.474909]
 northwest = [45.706619, -73.949498]
 northeast = [45.706619, -73.474909]
 
-class CreateGrids:
+class Geotools:
 
     def __init__(self, southwest, southeast, northwest, northeast):
         self.southwest= southwest
@@ -153,20 +153,8 @@ class CreateGrids:
 df = pd.read_csv('fire_incidents.csv', nrows=500, encoding="ISO-8859-1")
 
 
-main = CreateGrids(southwest, southeast, northwest, northeast)
+main = Geotools(southwest, southeast, northwest, northeast)
 grids, a, b = main.return_grids()
 
 mapped_df = main.mapping(df)
-
-print(grids.shape)
-print(mapped_df.head())
-print(grids[75][65])
-print(grids[0][1])
-print(grids[0][0])
-print("")
-print(grids[63][23])
-print(grids[63][22])
-print(grids[62][23])
-print(grids[62][22])
-
 
